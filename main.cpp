@@ -236,12 +236,6 @@ int main(){
 	float speed;
 	Uint32 mouseState;
 
-	//Light
-	/*float ambientStrength = 0.1f;
-	glm::vec3 ambient = ambientStrength * lightColor;
-
-	glm::vec3 result = ambient * */
-
 	while(isRunning){
 		Uint32 currentFrame = SDL_GetTicks();
 		deltaTime = (currentFrame - lastFrame) / 1000.0f;
