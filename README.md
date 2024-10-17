@@ -3,6 +3,7 @@
 1 - Invert
 <br>
 2 - Blur
+<br>
 Press the same button to undo effect
 ## Effects:
 ### Framebuffer:
