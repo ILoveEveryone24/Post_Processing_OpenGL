@@ -10,8 +10,8 @@ Press the same button to undo effect
 <br>
 ![Image 2](images/Image_2.png)
 ## Effects:
-### Invert:
+### Invert (1):
 ![Image 3](images/Image_3.png)
 <br>
-### Blur:
+### Blur (2):
 ![Image 4](images/Image_4.png)
