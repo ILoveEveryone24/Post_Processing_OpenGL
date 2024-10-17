@@ -1,6 +1,7 @@
 # Post processing effects in OpenGL
 ## Controls:
 1 - Invert
+<br>
 2 - Blur
 Press the same button to undo effect
 ## Effects:
