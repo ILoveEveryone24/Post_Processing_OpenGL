@@ -37,12 +37,12 @@ int main(){
 	std::vector<Vertex> lightVertices;
 	std::vector<glm::uvec3> lightIndices;
 	//Floor
-	vertices.push_back({glm::vec3(-1.0f, -1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
-	vertices.push_back({glm::vec3(-1.0f, 1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
-	vertices.push_back({glm::vec3(1.0f, -1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
-	vertices.push_back({glm::vec3(-1.0f, 1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
-	vertices.push_back({glm::vec3(1.0f, -1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
-	vertices.push_back({glm::vec3(1.0f, 1.0f, 1.001f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(-1.0f, -1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(-1.0f, 1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(1.0f, -1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(-1.0f, 1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(1.0f, -1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
+	vertices.push_back({glm::vec3(1.0f, 1.0f, 0.501f), glm::vec3(0.0f, 1.0f, 0.0f)});
 
 	vertices.push_back({glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f)});
 	vertices.push_back({glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f)});
@@ -216,6 +216,9 @@ int main(){
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -290,6 +293,15 @@ int main(){
 	float speed;
 	Uint32 mouseState;
 
+	std::vector<bool*> effects;
+	bool inverse = false;
+	bool blur = false;
+
+	effects.push_back(&inverse);
+	effects.push_back(&blur);
+	GLint inverseLoc = glGetUniformLocation(fboShader.ID, "inverse");
+	GLint blurLoc = glGetUniformLocation(fboShader.ID, "blur");
+
 	while(isRunning){
 		Uint32 currentFrame = SDL_GetTicks();
 		deltaTime = (currentFrame - lastFrame) / 1000.0f;
@@ -323,6 +335,21 @@ int main(){
 						cameraPos -= glm::cross(cameraFront, cameraUp)*speed;
 					if(event.key.keysym.sym == SDLK_d)
 						cameraPos += glm::cross(cameraFront, cameraUp)*speed;
+					if(event.key.keysym.sym == SDLK_SPACE)
+						cameraPos += cameraUp*speed;
+					if(event.key.keysym.sym == SDLK_1)
+						for(int i = 0; i < effects.size(); i++)
+							if(i == 0)
+								*effects[i] = !*effects[i];
+							else
+								*effects[i] = false;
+					if(event.key.keysym.sym == SDLK_2)
+						for(int i = 0; i < effects.size(); i++)
+							if(i == 1)
+								*effects[i] = !*effects[i];
+							else
+								*effects[i] = false;
+						
 					break;
 				case SDL_MOUSEMOTION:
 					int x, y, offsetX, offsetY;
@@ -344,7 +371,9 @@ int main(){
 					direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
 					cameraFront = glm::normalize(direction);
-				     	
+
+					//For screenshots
+					//cameraFront = glm::vec3(0.467069f, -0.101056f, -0.878427f);
 				     	break;
 				default:
 					break;	
@@ -383,6 +412,10 @@ int main(){
 		glBindVertexArray(fboVAO);
 		glDisable(GL_DEPTH_TEST);
 		glBindTexture(GL_TEXTURE_2D, texture);
+
+		glUniform1i(inverseLoc, inverse);
+		glUniform1i(blurLoc, blur);
+
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		
 		SDL_GL_SwapWindow(window);
