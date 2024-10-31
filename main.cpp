@@ -330,7 +330,6 @@ int main(){
 					isRunning = false;
 					break;
 				case SDL_KEYDOWN:
-					/*
 					if(event.key.keysym.sym == SDLK_w)
 						cameraPos += cameraFront*speed;
 					if(event.key.keysym.sym == SDLK_s)
@@ -341,7 +340,7 @@ int main(){
 						cameraPos += glm::cross(cameraFront, cameraUp)*speed;
 					if(event.key.keysym.sym == SDLK_SPACE)
 						cameraPos += cameraUp*speed;
-					*/
+					
 					if(event.key.keysym.sym == SDLK_1)
 						for(int i = 0; i < effects.size(); i++)
 							if(i == 0)
@@ -361,12 +360,11 @@ int main(){
 							else
 								*effects[i] = false;
 				
-					std::cout << "x: " << cameraPos.x << " y: " << cameraPos.y << " z: " << cameraPos.z << std::endl;
 					//For screenshots
-					cameraPos = glm::vec3(-0.978296, 1.31187, 5.00944);
+					//cameraPos = glm::vec3(-0.978296, 1.31187, 5.00944);
 					break;
 				case SDL_MOUSEMOTION:
-					/*int x, y, offsetX, offsetY;
+					int x, y, offsetX, offsetY;
 					mouseState = SDL_GetRelativeMouseState(&x, &y);
 					offsetX = x - lastX;
 					offsetY = lastY - y;
@@ -385,9 +383,9 @@ int main(){
 					direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
 					cameraFront = glm::normalize(direction);
-*/
+
 					//For screenshots
-					cameraFront = glm::vec3(0.467069f, -0.101056f, -0.878427f);
+					//cameraFront = glm::vec3(0.467069f, -0.101056f, -0.878427f);
 				     	break;
 				default:
 					break;	
