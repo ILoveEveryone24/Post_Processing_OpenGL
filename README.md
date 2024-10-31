@@ -4,6 +4,8 @@
 <br>
 2 - Blur
 <br>
+3 - Gaussian blur
+<br>
 Press the same button to undo effect
 ### Framebuffer:
 ![Image 1](images/Image_1.png) 
@@ -15,3 +17,6 @@ Press the same button to undo effect
 <br>
 ### Blur (2):
 ![Image 4](images/Image_4.png)
+<br>
+### Gaussian blur (3):
+![Image 5](images/Image_5.png)
