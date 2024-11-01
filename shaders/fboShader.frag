@@ -131,7 +131,7 @@ void main()
 		FragColor = vec4(col, TexCoords);
 	}
 	else if(g_blur != 0){
-		col = g_blur_func(1.5);
+		col = g_blur_func(4.0);
 		FragColor = vec4(col, TexCoords);
 	}
 	else{

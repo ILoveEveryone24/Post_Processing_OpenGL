@@ -1,6 +1,7 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "shaders/Shader.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -17,9 +18,43 @@ struct Vertex{
 	glm::vec3 normal;
 };
 
-int main(){
+GLuint loadTexture(const char *filePath){
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	if(IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) == 0){
+		std::cerr << "Failed to initialize SDL_image: " << IMG_GetError() << std::endl;
+		return -1;
+	}
+
+	SDL_Surface *data = IMG_Load(filePath);
+	
+	if(data){
+		GLenum format = (data->format->BytesPerPixel == 4) ? GL_RGBA : GL_RGB;
+		glTexImage2D(GL_TEXTURE_2D, 0, format, data->w, data->h, 0, format, GL_UNSIGNED_BYTE, data->pixels);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+	}
+	else{
+		std::cerr << "Failed to load texture: " << filePath << std::endl;
+		IMG_Quit();
+		return 0;	
+	}
+
+	return textureID;
+}
+
+int main(int argc, char *argv[]){
 	unsigned int VBO, VAO, EBO;
 	unsigned int lightVBO, lightVAO, lightEBO;
+	unsigned int imageVBO, imageVAO;
 	unsigned int fboVBO, fboVAO;
 
 	float fboQuad[24] ={
@@ -30,7 +65,14 @@ int main(){
 		1.0f, 1.0f, 1.0f, 1.0f,
 		1.0f, -1.0f, 1.0f, 0.0f,
 	};
-	
+	float imageQuad[24] = {
+		-1.0f, -1.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f, -1.0f, 1.0f, 1.0f
+	};
 	std::vector<Vertex> vertices;
 	std::vector<glm::uvec3> indices;
 
@@ -141,6 +183,8 @@ int main(){
 		return -1;	
 	}
 
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
 	SDL_GLContext glContext = SDL_GL_CreateContext(window);
 	if(!glContext){
 		std::cout << "Failed to initialize GLContext" << std::endl;
@@ -152,8 +196,28 @@ int main(){
 		return -1;	
 	}
 
+	//Handle arguments passed
+	GLuint image_texture = -1;
+	if(argc == 2){
+		if(std::string(argv[1]) == "--image"){
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+
+			std::cout << "Added image: DEFAULT" << std::endl;
+			image_texture = loadTexture("./images/image.jpg");
+		}
+	}
+	else if(argc == 3){
+		if(std::string(argv[1]) == "--image"){
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+
+			std::cout << "Added image: " << argv[2] << std::endl;
+			image_texture = loadTexture(argv[2]);
+		}
+	}
+
+
+
 	glViewport(0, 0, WIDTH, HEIGHT);
-	SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	//Scene buffers
 	glGenBuffers(1, &VBO);
@@ -185,6 +249,20 @@ int main(){
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	//Image buffers
+	glGenBuffers(1, &imageVBO);
+	glGenVertexArrays(1, &imageVAO);
+
+	glBindVertexArray(imageVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, imageVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(imageQuad), imageQuad, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 	//Framebuffer buffers
 	glGenBuffers(1, &fboVBO);
 	glGenVertexArrays(1, &fboVAO);
@@ -201,6 +279,7 @@ int main(){
 
 	Shader sceneShader("./shaders/shader.ver", "./shaders/shader.frag");
 	Shader lightShader("./shaders/lightShader.ver", "./shaders/lightShader.frag");
+	Shader imageShader("./shaders/imageShader.ver", "./shaders/imageShader.frag");
 	Shader fboShader("./shaders/fboShader.ver", "./shaders/fboShader.frag");
 
 	//Framebuffer and Texture
@@ -223,6 +302,7 @@ int main(){
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+	//For depth perception
 	unsigned int RBO;
 	glGenRenderbuffers(1, &RBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, RBO);
@@ -231,6 +311,7 @@ int main(){
 
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
 
+	//Check to see if Framebuffer is complete
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -305,16 +386,12 @@ int main(){
 	GLint blurLoc = glGetUniformLocation(fboShader.ID, "blur");
 	GLint g_blurLoc = glGetUniformLocation(fboShader.ID, "g_blur");
 
+
 	while(isRunning){
 		Uint32 currentFrame = SDL_GetTicks();
 		deltaTime = (currentFrame - lastFrame) / 1000.0f;
 		lastFrame = currentFrame;
 		speed = 5.0f * deltaTime;
-
-		mvp = proj * view * model;
-		mvp2 = proj * view * model2;
-		lightMvp = proj * view * lightModel;
-		view = glm::lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
 
 		//Framebuffer
 		glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -322,7 +399,6 @@ int main(){
 		glClearColor(155.0f/255.0f, 136.0f/255.0f, 120.0f/255.0f, 1.0f);	
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
-
 
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
@@ -391,29 +467,44 @@ int main(){
 					break;	
 			}	
 		}
-		
-		sceneShader.use();
-		glBindVertexArray(VAO);
-		
-		glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, &mvp[0][0]);
-		glUniformMatrix4fv(mvp2Loc, 1, GL_FALSE, &mvp2[0][0]);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-		glUniformMatrix4fv(model2Loc, 1, GL_FALSE, &model2[0][0]);
-		glUniform3fv(objectColorLoc, 1, &objectColor[0]);
-		glUniform3fv(viewPosLoc, 1, &cameraPos[0]);
-		glUniform3fv(lightPosLoc, 1, &lightPos[0]);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glDrawElements(GL_TRIANGLES, length, GL_UNSIGNED_INT, 0);
+		if(image_texture != -1){
+			imageShader.use();
+			glBindVertexArray(imageVAO);
+			glBindTexture(GL_TEXTURE_2D, image_texture);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			glBindVertexArray(0);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+		else{
+			mvp = proj * view * model;
+			mvp2 = proj * view * model2;
+			lightMvp = proj * view * lightModel;
+			view = glm::lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
 
-		lightShader.use();
-		glBindVertexArray(lightVAO);
-		
-		glUniformMatrix4fv(lightMvpLoc, 1, GL_FALSE, &lightMvp[0][0]);
+			sceneShader.use();
+			glBindVertexArray(VAO);
+			
+			glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, &mvp[0][0]);
+			glUniformMatrix4fv(mvp2Loc, 1, GL_FALSE, &mvp2[0][0]);
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+			glUniformMatrix4fv(model2Loc, 1, GL_FALSE, &model2[0][0]);
+			glUniform3fv(objectColorLoc, 1, &objectColor[0]);
+			glUniform3fv(viewPosLoc, 1, &cameraPos[0]);
+			glUniform3fv(lightPosLoc, 1, &lightPos[0]);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightEBO);
-		glDrawElements(GL_TRIANGLES, lightLength, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			glDrawElements(GL_TRIANGLES, length, GL_UNSIGNED_INT, 0);
+
+			lightShader.use();
+			glBindVertexArray(lightVAO);
+			
+			glUniformMatrix4fv(lightMvpLoc, 1, GL_FALSE, &lightMvp[0][0]);
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightEBO);
+			glDrawElements(GL_TRIANGLES, lightLength, GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
 
 		//Drawing quad texture
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
